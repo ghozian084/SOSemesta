@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Penampil PDF Polos</title>
+    <title>Penampil Soal Polos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
@@ -29,10 +29,19 @@
             flex-direction: column;
             z-index: 100;
         }
-        .pdf-iframe {
+        .image-viewer-container {
             width: 100%;
             height: 100%;
-            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+            position: relative;
+        }
+        .image-viewer-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
         .timer-display {
             position: absolute;
@@ -104,9 +113,9 @@
 
     <!-- Konten utama saat tidak dalam mode fullscreen -->
     <div id="main-content" class="bg-white p-8 rounded-xl shadow-lg text-center max-w-lg w-full transition-opacity duration-500">
-        <h1 class="text-3xl font-bold mb-4">Penampil PDF Polos</h1>
+        <h1 class="text-3xl font-bold mb-4">Penampil Soal Polos</h1>
         <p class="text-gray-600 mb-6">
-            Halaman ini akan menampilkan dokumen PDF tanpa menu navigasi dalam mode layar penuh (simulasi).
+            Halaman ini akan menampilkan soal tanpa menu navigasi dalam mode layar penuh.
         </p>
 
         <!-- Pilihan Soal SMP/SMA -->
@@ -116,6 +125,7 @@
                 <option value="" disabled selected>-- Pilih salah satu --</option>
                 <option value="smp">Soal SMP</option>
                 <option value="sma">Soal SMA</option>
+                <option value="tpa">Soal TPA</option>
             </select>
         </div>
 
@@ -126,23 +136,32 @@
 
     <!-- Layar loading -->
     <div id="loading-screen" class="loading-screen">
-        <h2 class="text-3xl font-bold mb-4">Mengunduh PDF...</h2>
+        <h2 class="text-3xl font-bold mb-4">Memuat Soal...</h2>
         <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-4 border-blue-500"></div>
-        <p class="mt-4 text-gray-300">Jika PDF tidak muncul, periksa koneksi internet Anda.</p>
+        <p class="mt-4 text-gray-300">Jika gambar tidak muncul, periksa koneksi internet atau URL gambar Anda.</p>
     </div>
 
-    <!-- Kontainer PDF dan tombol keluar -->
-    <div id="pdf-container" class="fixed top-0 left-0 w-full h-full bg-gray-900 transition-all duration-300 scale-0 opacity-0 hidden">
-        <iframe id="pdf-viewer" class="pdf-iframe" src="" allowfullscreen></iframe>
+    <!-- Kontainer soal dan tombol navigasi -->
+    <div id="image-container" class="fixed top-0 left-0 w-full h-full bg-gray-900 transition-all duration-300 scale-0 opacity-0 hidden">
+        <div class="image-viewer-container">
+            <img id="page-image" src="" alt="Halaman soal" class="w-full h-full object-contain">
+        </div>
         
         <button id="exit-fullscreen-btn" class="absolute top-4 left-4 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition duration-300 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50">
             Keluar
         </button>
 
-        <!-- Tombol untuk menggulir ke bawah -->
-        <button id="scroll-down-btn" class="absolute bottom-4 right-4 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-700 transition duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50">
-            Gulir ke Bawah
-        </button>
+        <!-- Tombol navigasi -->
+        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-4">
+            <button id="prev-page-btn" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-700 transition duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50 disabled-btn">
+                Sebelumnya
+            </button>
+            <span id="page-number-display" class="text-white text-lg font-bold bg-gray-700 px-4 py-2 rounded-lg flex items-center justify-center">1 / 1</span>
+            <button id="next-page-btn" class="bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-700 transition duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50">
+                Berikutnya
+            </button>
+        </div>
+
         <span id="timer-display" class="timer-display"></span>
     </div>
 
@@ -167,17 +186,32 @@
         // Menggunakan IIFE untuk menghindari variabel global
         (function() {
             // ==========================================================
-            // KODE PENTING UNTUK MENGATUR DURASI WAKTU DAN URL PDF
+            // KODE PENTING UNTUK MENGATUR DURASI WAKTU DAN URL GAMBAR SOAL
             // ==========================================================
             // Ubah nilai di bawah ini untuk mengatur durasi hitung mundur.
             // Nilai dalam menit. 120 menit = 2 jam.
             const DURATION_IN_MINUTES = 120;
             
-            // Ganti URL ini dengan alamat PDF Anda.
-            // URL PDF untuk Soal SMP
-            const PDF_URL_SMP = 'TMD SMP-Fix Show.pdf';
-            // URL PDF untuk Soal SMA
-            const PDF_URL_SMA = 'TMD SMA-Fix Show.pdf';
+            // Pengaturan URL untuk soal SMP
+            // Nama file gambar harus mengikuti format: 'TMD SMP-Fix Print_page-001.jpg', 'TMD SMP-Fix Print_page-002.jpg', dst.
+            const SMP_CONFIG = {
+                baseUrl: 'images/TMD SMP-Fix Print_page-0',
+                total_pages: 6 // Ubah sesuai jumlah halaman gambar SMP
+            };
+            
+            // Pengaturan URL untuk soal SMA
+            // Nama file gambar harus mengikuti format: 'TMD SMA-Fix Print_page-001.jpg', 'TMD SMA-Fix Print_page-002.jpg', dst.
+            const SMA_CONFIG = {
+                baseUrl: 'images/TMD SMA-Fix Print_page-0',
+                total_pages: 8 // Ubah sesuai jumlah halaman gambar SMA
+            };
+
+            // Pengaturan URL untuk soal TPA
+            // Nama file gambar harus mengikuti format: 'TPA_page_1.jpg', 'TPA_page_2.jpg', dst.
+            const TPA_CONFIG = {
+                baseUrl: 'images/TPA_page_',
+                total_pages: 10 // Ubah sesuai jumlah halaman gambar TPA
+            };
 
             // === PENGATURAN BATAS WAKTU AKSES ===
             // Atur batas waktu akses. Format: 'Tahun-Bulan-Tanggal'
@@ -191,10 +225,12 @@
             const mainContent = document.getElementById('main-content');
             const fullscreenBtn = document.getElementById('fullscreen-btn');
             const questionTypeSelect = document.getElementById('question-type');
-            const pdfContainer = document.getElementById('pdf-container');
-            const pdfViewer = document.getElementById('pdf-viewer');
+            const imageContainer = document.getElementById('image-container');
+            const pageImage = document.getElementById('page-image');
             const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
-            const scrollDownBtn = document.getElementById('scroll-down-btn');
+            const prevPageBtn = document.getElementById('prev-page-btn');
+            const nextPageBtn = document.getElementById('next-page-btn');
+            const pageNumberDisplay = document.getElementById('page-number-display');
             const timerDisplay = document.getElementById('timer-display');
             const loadingScreen = document.getElementById('loading-screen');
             const messageModal = document.getElementById('message-modal');
@@ -211,6 +247,10 @@
             let pauseSeconds = 30;
             let isMainTimerPaused = false;
             let isFullscreenActive = false;
+            let currentPage = 1;
+            let totalPages = 1;
+            let currentBaseUrl = '';
+            let zeroPadLength = 0; // Length for zero-padding (e.g., 3 for 001)
 
             // Fungsi untuk menampilkan pesan modal
             function showMessageModal(message) {
@@ -318,12 +358,36 @@
                 }
             }
 
-            // Fungsi untuk menggulir ke bawah
-            function scrollDown() {
-                pdfContainer.scrollBy({
-                    top: window.innerHeight * 0.5,
-                    behavior: 'smooth'
-                });
+            // Fungsi untuk memperbarui tampilan gambar halaman
+            function updateImageDisplay() {
+                let imageUrl = '';
+                if (zeroPadLength > 0) {
+                    imageUrl = `${currentBaseUrl}${String(currentPage).padStart(zeroPadLength, '0')}.jpg`;
+                } else {
+                    imageUrl = `${currentBaseUrl}${currentPage}.jpg`;
+                }
+                
+                pageImage.src = imageUrl;
+                pageNumberDisplay.textContent = `${currentPage} / ${totalPages}`;
+                
+                prevPageBtn.disabled = currentPage === 1;
+                nextPageBtn.disabled = currentPage === totalPages;
+
+                if (prevPageBtn.disabled) {
+                    prevPageBtn.classList.add('disabled-btn');
+                    prevPageBtn.classList.remove('hover:bg-gray-700');
+                } else {
+                    prevPageBtn.classList.remove('disabled-btn');
+                    prevPageBtn.classList.add('hover:bg-gray-700');
+                }
+                
+                if (nextPageBtn.disabled) {
+                    nextPageBtn.classList.add('disabled-btn');
+                    nextPageBtn.classList.remove('hover:bg-gray-700');
+                } else {
+                    nextPageBtn.classList.remove('disabled-btn');
+                    nextPageBtn.classList.add('hover:bg-gray-700');
+                }
             }
 
             // Fungsi untuk masuk ke mode layar penuh simulasi
@@ -339,30 +403,39 @@
                     return;
                 }
 
+                if (selectedQuestionType === 'smp') {
+                    currentBaseUrl = SMP_CONFIG.baseUrl;
+                    totalPages = SMP_CONFIG.total_pages;
+                    zeroPadLength = 3;
+                } else if (selectedQuestionType === 'sma') {
+                    currentBaseUrl = SMA_CONFIG.baseUrl;
+                    totalPages = SMA_CONFIG.total_pages;
+                    zeroPadLength = 3;
+                } else if (selectedQuestionType === 'tpa') {
+                    currentBaseUrl = TPA_CONFIG.baseUrl;
+                    totalPages = TPA_CONFIG.total_pages;
+                    zeroPadLength = 0;
+                }
+
+                if (totalPages === 0) {
+                    showMessageModal('Tipe soal ini belum memiliki konten.');
+                    return;
+                }
+
                 isFullscreenActive = true;
                 loadingScreen.style.display = 'flex';
                 
-                let currentPdfUrl;
-                if (selectedQuestionType === 'smp') {
-                    currentPdfUrl = PDF_URL_SMP;
-                } else if (selectedQuestionType === 'sma') {
-                    currentPdfUrl = PDF_URL_SMA;
-                }
-
-                const sanitizedUrl = currentPdfUrl.replace(/ /g, '%20');
-                const finalPdfUrl = `${sanitizedUrl}#toolbar=0&navpanes=0&scrollbar=0`;
-
-                pdfViewer.src = finalPdfUrl;
+                currentPage = 1;
+                updateImageDisplay();
                 timerSeconds = DURATION_IN_MINUTES * 60;
                 
                 mainContent.classList.add('opacity-0');
                 setTimeout(() => mainContent.classList.add('hidden'), 500);
 
-                pdfContainer.classList.remove('hidden');
+                imageContainer.classList.remove('hidden');
                 setTimeout(() => {
-                    pdfContainer.classList.remove('scale-0', 'opacity-0');
+                    imageContainer.classList.remove('scale-0', 'opacity-0');
                     exitFullscreenBtn.style.display = 'block';
-                    scrollDownBtn.style.display = 'block';
                     loadingScreen.style.display = 'none';
                     startTimer();
                 }, 10);
@@ -375,11 +448,10 @@
                 clearInterval(pauseTimerInterval);
                 isMainTimerPaused = false;
 
-                pdfContainer.classList.add('scale-0', 'opacity-0');
+                imageContainer.classList.add('scale-0', 'opacity-0');
                 exitFullscreenBtn.style.display = 'none';
-                scrollDownBtn.style.display = 'none';
                 pauseOverlay.style.display = 'none';
-                setTimeout(() => pdfContainer.classList.add('hidden'), 300);
+                setTimeout(() => imageContainer.classList.add('hidden'), 300);
 
                 mainContent.classList.remove('hidden');
                 setTimeout(() => mainContent.classList.remove('opacity-0'), 10);
@@ -391,16 +463,29 @@
             // Event listener saat tombol "Keluar" diklik
             exitFullscreenBtn.addEventListener('click', exitSimulatedFullscreen);
             
-            // Event listener saat tombol "Gulir ke Bawah" diklik
-            scrollDownBtn.addEventListener('click', scrollDown);
+            // Event listener untuk tombol halaman sebelumnya
+            prevPageBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updateImageDisplay();
+                }
+            });
+
+            // Event listener untuk tombol halaman berikutnya
+            nextPageBtn.addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updateImageDisplay();
+                }
+            });
 
             // Event listener untuk tombol tutup modal
             modalCloseBtn.addEventListener('click', hideMessageModal);
 
-            // Handle error memuat PDF
-            pdfViewer.addEventListener('error', () => {
+            // Handle error memuat gambar
+            pageImage.addEventListener('error', () => {
                 loadingScreen.style.display = 'none';
-                showMessageModal('Gagal memuat dokumen PDF. URL mungkin tidak valid atau ada masalah jaringan.');
+                showMessageModal('Gagal memuat gambar soal. Pastikan URL gambar benar dan file ada.');
                 exitSimulatedFullscreen();
             });
 
@@ -425,4 +510,3 @@
     </script>
 </body>
 </html>
-
