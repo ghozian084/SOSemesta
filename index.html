@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penampil PDF Polos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Nonaktifkan seleksi teks di halaman utama */
+            -webkit-user-select: none;  /* Safari */
+            -moz-user-select: none;     /* Firefox */
+            -ms-user-select: none;      /* IE10+/Edge */
+            user-select: none;          /* Standard */
+        }
+        .loading-screen {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .pdf-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .timer-display {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            color: #fca5a5;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            z-index: 10;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 200;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+            border-radius: 10px;
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        /* Style untuk tombol yang dinonaktifkan */
+        .disabled-btn {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            opacity: 0.7;
+        }
+        .disabled-btn:hover {
+            background-color: #9ca3af;
+            transform: none;
+        }
+        /* Gaya untuk jeda countdown */
+        .pause-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 150;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Konten utama saat tidak dalam mode fullscreen -->
+    <div id="main-content" class="bg-white p-8 rounded-xl shadow-lg text-center max-w-lg w-full transition-opacity duration-500">
+        <h1 class="text-3xl font-bold mb-4">Penampil PDF Polos</h1>
+        <p class="text-gray-600 mb-6">
+            Halaman ini akan menampilkan dokumen PDF tanpa menu navigasi dalam mode layar penuh (simulasi).
+        </p>
+
+        <!-- Pilihan Soal SMP/SMA -->
+        <div class="mb-6">
+            <label for="question-type" class="block text-gray-700 font-semibold mb-2">Pilih Tipe Soal:</label>
+            <select id="question-type" class="w-full p-3 border border-gray-300 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="" disabled selected>-- Pilih salah satu --</option>
+                <option value="smp">Soal SMP</option>
+                <option value="sma">Soal SMA</option>
+            </select>
+        </div>
+
+        <button id="fullscreen-btn" class="bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
+            Masuk Tampilan Polos
+        </button>
+    </div>
+
+    <!-- Layar loading -->
+    <div id="loading-screen" class="loading-screen">
+        <h2 class="text-3xl font-bold mb-4">Mengunduh PDF...</h2>
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-4 border-blue-500"></div>
+        <p class="mt-4 text-gray-300">Jika PDF tidak muncul, periksa koneksi internet Anda.</p>
+    </div>
+
+    <!-- Kontainer PDF dan tombol keluar -->
+    <div id="pdf-container" class="fixed top-0 left-0 w-full h-full bg-gray-900 transition-all duration-300 scale-0 opacity-0 hidden">
+        <iframe id="pdf-viewer" class="pdf-iframe" src="" allowfullscreen></iframe>
+        
+        <button id="exit-fullscreen-btn" class="absolute top-4 left-4 bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition duration-300 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50">
+            Keluar
+        </button>
+
+        <!-- Tombol untuk menggulir ke bawah -->
+        <button id="scroll-down-btn" class="absolute bottom-4 right-4 bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-700 transition duration-300 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50">
+            Gulir ke Bawah
+        </button>
+        <span id="timer-display" class="timer-display"></span>
+    </div>
+
+    <!-- Modal untuk pesan -->
+    <div id="message-modal" class="modal">
+      <div class="modal-content">
+        <p id="modal-text" class="text-lg font-semibold text-gray-800"></p>
+        <button id="modal-close-btn" class="mt-4 bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300">
+            Tutup
+        </button>
+      </div>
+    </div>
+
+    <!-- Overlay untuk jeda saat berpindah tab/jendela -->
+    <div id="pause-overlay" class="pause-overlay">
+        <h2 class="text-3xl font-bold mb-4" id="pause-message">Waktu Ujian Dijeda</h2>
+        <p class="text-xl" id="pause-sub-message">Anda terdeteksi berpindah jendela. Kembali ke halaman ini dalam waktu:</p>
+        <div class="mt-4 text-6xl font-bold text-red-400" id="pause-countdown"></div>
+    </div>
+
+    <script>
+        // Menggunakan IIFE untuk menghindari variabel global
+        (function() {
+            // ==========================================================
+            // KODE PENTING UNTUK MENGATUR DURASI WAKTU DAN URL PDF
+            // ==========================================================
+            // Ubah nilai di bawah ini untuk mengatur durasi hitung mundur.
+            // Nilai dalam menit. 120 menit = 2 jam.
+            const DURATION_IN_MINUTES = 120;
+            
+            // Ganti URL ini dengan alamat PDF Anda.
+            // URL PDF untuk Soal SMP
+            const PDF_URL_SMP = 'TMD SMP-Fix Show.pdf';
+            // URL PDF untuk Soal SMA
+            const PDF_URL_SMA = 'TMD SMA-Fix Show.pdf';
+
+            // === PENGATURAN BATAS WAKTU AKSES ===
+            // Atur batas waktu akses. Format: 'Tahun-Bulan-Tanggal'
+            const EXPIRY_DATE = '2025-08-02';
+            // Atur batas waktu akses. Format: 'Jam:Menit:Detik' (24-jam)
+            const EXPIRY_TIME = '18:35:00'; 
+            // ==========================================================
+            // AKHIR BAGIAN PENTING
+            // ==========================================================
+
+            const mainContent = document.getElementById('main-content');
+            const fullscreenBtn = document.getElementById('fullscreen-btn');
+            const questionTypeSelect = document.getElementById('question-type');
+            const pdfContainer = document.getElementById('pdf-container');
+            const pdfViewer = document.getElementById('pdf-viewer');
+            const exitFullscreenBtn = document.getElementById('exit-fullscreen-btn');
+            const scrollDownBtn = document.getElementById('scroll-down-btn');
+            const timerDisplay = document.getElementById('timer-display');
+            const loadingScreen = document.getElementById('loading-screen');
+            const messageModal = document.getElementById('message-modal');
+            const modalText = document.getElementById('modal-text');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const pauseOverlay = document.getElementById('pause-overlay');
+            const pauseMessage = document.getElementById('pause-message');
+            const pauseSubMessage = document.getElementById('pause-sub-message');
+            const pauseCountdown = document.getElementById('pause-countdown');
+
+            let timerInterval;
+            let timerSeconds;
+            let pauseTimerInterval;
+            let pauseSeconds = 30;
+            let isMainTimerPaused = false;
+            let isFullscreenActive = false;
+
+            // Fungsi untuk menampilkan pesan modal
+            function showMessageModal(message) {
+                modalText.textContent = message;
+                messageModal.style.display = 'block';
+            }
+
+            // Fungsi untuk menyembunyikan pesan modal
+            function hideMessageModal() {
+                modalCloseBtn.addEventListener('click', () => {
+                    messageModal.style.display = 'none';
+                }, { once: true });
+            }
+
+            // Fungsi untuk memeriksa batas waktu akses
+            function checkAccessExpiry() {
+                const now = new Date();
+                const expiry = new Date(`${EXPIRY_DATE}T${EXPIRY_TIME}`);
+
+                if (now > expiry) {
+                    fullscreenBtn.disabled = true;
+                    fullscreenBtn.textContent = 'Akses Telah Berakhir';
+                    fullscreenBtn.classList.add('disabled-btn');
+                    fullscreenBtn.classList.remove('hover:bg-blue-700', 'transform', 'hover:scale-105', 'focus:ring-blue-500');
+                    return true;
+                }
+                return false;
+            }
+
+            // Fungsi untuk memulai timer utama
+            function startTimer() {
+                if (isMainTimerPaused) return;
+
+                timerDisplay.style.display = 'block';
+                timerInterval = setInterval(() => {
+                    if (checkAccessExpiry()) {
+                        clearInterval(timerInterval);
+                        showMessageModal('Akses telah berakhir. Halaman akan ditutup.');
+                        exitSimulatedFullscreen();
+                        return;
+                    }
+
+                    if (timerSeconds <= 0) {
+                        clearInterval(timerInterval);
+                        showMessageModal('Waktu telah habis!');
+                        exitSimulatedFullscreen();
+                        return;
+                    }
+
+                    timerSeconds--;
+                    const hours = Math.floor(timerSeconds / 3600);
+                    const minutes = Math.floor((timerSeconds % 3600) / 60);
+                    const seconds = timerSeconds % 60;
+                    
+                    timerDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+
+            // Fungsi untuk menghentikan dan mereset timer utama
+            function stopTimer() {
+                clearInterval(timerInterval);
+                timerDisplay.style.display = 'none';
+            }
+
+            // Fungsi untuk memulai hitungan mundur jeda (penalty)
+            function startPenaltyTimer() {
+                clearInterval(pauseTimerInterval);
+                
+                pauseSeconds = 30;
+                pauseMessage.textContent = 'Waktu Ujian Dijeda';
+                pauseSubMessage.textContent = 'Anda terdeteksi berpindah jendela. Kembali ke halaman ini dalam waktu:';
+                pauseCountdown.textContent = pauseSeconds;
+                pauseCountdown.style.display = 'block';
+                pauseOverlay.style.display = 'flex';
+                
+                pauseTimerInterval = setInterval(() => {
+                    if (pauseSeconds <= 0) {
+                        clearInterval(pauseTimerInterval);
+                        pauseOverlay.style.display = 'none';
+                        isMainTimerPaused = false;
+                        startTimer();
+                        return;
+                    }
+                    pauseSeconds--;
+                    pauseCountdown.textContent = pauseSeconds;
+                }, 1000);
+            }
+
+            // Event listener saat halaman tidak aktif (pindah tab atau jendela)
+            function handlePageHidden() {
+                if (isFullscreenActive && !isMainTimerPaused) {
+                    stopTimer();
+                    isMainTimerPaused = true;
+                    pauseMessage.textContent = 'Waktu Ujian Dijeda';
+                    pauseSubMessage.textContent = 'Anda terdeteksi berpindah jendela. Kembalilah ke halaman ini.';
+                    pauseCountdown.style.display = 'none';
+                    pauseOverlay.style.display = 'flex';
+                }
+            }
+
+            // Event listener saat halaman aktif kembali
+            function handlePageVisible() {
+                if (isFullscreenActive && isMainTimerPaused) {
+                    startPenaltyTimer();
+                }
+            }
+
+            // Fungsi untuk menggulir ke bawah
+            function scrollDown() {
+                pdfContainer.scrollBy({
+                    top: window.innerHeight * 0.5,
+                    behavior: 'smooth'
+                });
+            }
+
+            // Fungsi untuk masuk ke mode layar penuh simulasi
+            function enterSimulatedFullscreen() {
+                const selectedQuestionType = questionTypeSelect.value;
+                if (!selectedQuestionType) {
+                    showMessageModal('Harap pilih tipe soal terlebih dahulu.');
+                    return;
+                }
+
+                if (checkAccessExpiry()) {
+                    showMessageModal('Akses telah berakhir dan tidak bisa dilanjutkan.');
+                    return;
+                }
+
+                isFullscreenActive = true;
+                loadingScreen.style.display = 'flex';
+                
+                let currentPdfUrl;
+                if (selectedQuestionType === 'smp') {
+                    currentPdfUrl = PDF_URL_SMP;
+                } else if (selectedQuestionType === 'sma') {
+                    currentPdfUrl = PDF_URL_SMA;
+                }
+
+                const sanitizedUrl = currentPdfUrl.replace(/ /g, '%20');
+                const finalPdfUrl = `${sanitizedUrl}#toolbar=0&navpanes=0&scrollbar=0`;
+
+                pdfViewer.src = finalPdfUrl;
+                timerSeconds = DURATION_IN_MINUTES * 60;
+                
+                mainContent.classList.add('opacity-0');
+                setTimeout(() => mainContent.classList.add('hidden'), 500);
+
+                pdfContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    pdfContainer.classList.remove('scale-0', 'opacity-0');
+                    exitFullscreenBtn.style.display = 'block';
+                    scrollDownBtn.style.display = 'block';
+                    loadingScreen.style.display = 'none';
+                    startTimer();
+                }, 10);
+            }
+
+            // Fungsi untuk keluar dari mode layar penuh simulasi
+            function exitSimulatedFullscreen() {
+                isFullscreenActive = false;
+                stopTimer();
+                clearInterval(pauseTimerInterval);
+                isMainTimerPaused = false;
+
+                pdfContainer.classList.add('scale-0', 'opacity-0');
+                exitFullscreenBtn.style.display = 'none';
+                scrollDownBtn.style.display = 'none';
+                pauseOverlay.style.display = 'none';
+                setTimeout(() => pdfContainer.classList.add('hidden'), 300);
+
+                mainContent.classList.remove('hidden');
+                setTimeout(() => mainContent.classList.remove('opacity-0'), 10);
+            }
+
+            // Event listener saat tombol "Masuk Layar Penuh" diklik
+            fullscreenBtn.addEventListener('click', enterSimulatedFullscreen);
+
+            // Event listener saat tombol "Keluar" diklik
+            exitFullscreenBtn.addEventListener('click', exitSimulatedFullscreen);
+            
+            // Event listener saat tombol "Gulir ke Bawah" diklik
+            scrollDownBtn.addEventListener('click', scrollDown);
+
+            // Event listener untuk tombol tutup modal
+            modalCloseBtn.addEventListener('click', hideMessageModal);
+
+            // Handle error memuat PDF
+            pdfViewer.addEventListener('error', () => {
+                loadingScreen.style.display = 'none';
+                showMessageModal('Gagal memuat dokumen PDF. URL mungkin tidak valid atau ada masalah jaringan.');
+                exitSimulatedFullscreen();
+            });
+
+            // Menonaktifkan klik kanan dan seleksi teks di halaman utama
+            document.addEventListener('contextmenu', event => event.preventDefault());
+            document.addEventListener('copy', event => event.preventDefault());
+            document.addEventListener('cut', event => event.preventDefault());
+
+            // Panggil checkAccessExpiry() saat halaman dimuat untuk pertama kali
+            window.addEventListener('load', checkAccessExpiry);
+            
+            // Event listeners untuk deteksi perpindahan tab/jendela
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    handlePageHidden();
+                } else {
+                    handlePageVisible();
+                }
+            });
+
+        })();
+    </script>
+</body>
+</html>
