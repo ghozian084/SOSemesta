@@ -113,7 +113,7 @@
 
     <!-- Konten utama saat tidak dalam mode fullscreen -->
     <div id="main-content" class="bg-white p-8 rounded-xl shadow-lg text-center max-w-lg w-full transition-opacity duration-500">
-        <h1 class="text-3xl font-bold mb-4">Penampil Soal Polos</h1>
+        <h1 class="text-3xl font-bold mb-4">Soal Seleksi Tim Olimpiade Semesta</h1>
         <p class="text-gray-600 mb-6">
             Halaman ini akan menampilkan soal tanpa menu navigasi dalam mode layar penuh.
         </p>
@@ -123,14 +123,14 @@
             <label for="question-type" class="block text-gray-700 font-semibold mb-2">Pilih Tipe Soal:</label>
             <select id="question-type" class="w-full p-3 border border-gray-300 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="" disabled selected>-- Pilih salah satu --</option>
-                <option value="smp">Soal SMP</option>
-                <option value="sma">Soal SMA</option>
-                <option value="tpa">Soal TPA</option>
+                <option value="smp">TMD SMP</option>
+                <option value="sma">TMD SMA</option>
+                <option value="tpa">TPA</option>
             </select>
         </div>
 
         <button id="fullscreen-btn" class="bg-blue-600 text-white font-semibold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700 transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50">
-            Masuk Tampilan Polos
+            Masuk ke Soal
         </button>
     </div>
 
@@ -188,36 +188,43 @@
             // ==========================================================
             // KODE PENTING UNTUK MENGATUR DURASI WAKTU DAN URL GAMBAR SOAL
             // ==========================================================
-            // Ubah nilai di bawah ini untuk mengatur durasi hitung mundur.
-            // Nilai dalam menit. 120 menit = 2 jam.
-            const DURATION_IN_MINUTES = 120;
             
             // Pengaturan URL untuk soal SMP
             // Nama file gambar harus mengikuti format: 'TMD SMP-Fix Print_page-001.jpg', 'TMD SMP-Fix Print_page-002.jpg', dst.
             const SMP_CONFIG = {
                 baseUrl: 'images/TMD SMP-Fix Print_page-0',
-                total_pages: 6 // Ubah sesuai jumlah halaman gambar SMP
+                total_pages: 5,     // Ubah sesuai jumlah halaman gambar SMP
+                duration: 60,      // Durasi ujian dalam menit
+                accessTime: {
+                    date: '2025-08-05',   // Tanggal kedaluwarsa ujian
+                    time: '17:10:00'      // Waktu kedaluwarsa ujian (24-jam)
+                }
             };
             
             // Pengaturan URL untuk soal SMA
             // Nama file gambar harus mengikuti format: 'TMD SMA-Fix Print_page-001.jpg', 'TMD SMA-Fix Print_page-002.jpg', dst.
             const SMA_CONFIG = {
                 baseUrl: 'images/TMD SMA-Fix Print_page-0',
-                total_pages: 8 // Ubah sesuai jumlah halaman gambar SMA
+                total_pages: 8,     // Ubah sesuai jumlah halaman gambar SMA
+                duration: 60,      // Durasi ujian dalam menit
+                accessTime: {
+                    date: '2025-08-05',   // Tanggal kedaluwarsa ujian
+                    time: '17:10:00'      // Waktu kedaluwarsa ujian (24-jam)
+                }
             };
 
             // Pengaturan URL untuk soal TPA
             // Nama file gambar harus mengikuti format: 'TPA_page_1.jpg', 'TPA_page_2.jpg', dst.
             const TPA_CONFIG = {
-                baseUrl: 'images/TPA_page_',
-                total_pages: 10 // Ubah sesuai jumlah halaman gambar TPA
+                baseUrl: 'images/TPA_page-000',
+                total_pages: 9,    // Ubah sesuai jumlah halaman gambar TPA
+                duration: 60,       // Durasi ujian dalam menit
+                accessTime: {
+                    date: '2025-08-04',   // Tanggal kedaluwarsa ujian
+                    time: '17:10:00'      // Waktu kedaluwarsa ujian (24-jam)
+                }
             };
 
-            // === PENGATURAN BATAS WAKTU AKSES ===
-            // Atur batas waktu akses. Format: 'Tahun-Bulan-Tanggal'
-            const EXPIRY_DATE = '2025-08-04';
-            // Atur batas waktu akses. Format: 'Jam:Menit:Detik' (24-jam)
-            const EXPIRY_TIME = '17:00:00'; 
             // ==========================================================
             // AKHIR BAGIAN PENTING
             // ==========================================================
@@ -251,6 +258,7 @@
             let totalPages = 1;
             let currentBaseUrl = '';
             let zeroPadLength = 0; // Length for zero-padding (e.g., 3 for 001)
+            let selectedConfig;
 
             // Fungsi untuk menampilkan pesan modal
             function showMessageModal(message) {
@@ -266,15 +274,14 @@
             }
 
             // Fungsi untuk memeriksa batas waktu akses
-            function checkAccessExpiry() {
+            function checkAccessExpiry(config) {
+                if (!config || !config.accessTime) {
+                    return false; // Jika tidak ada konfigurasi, lewati cek
+                }
                 const now = new Date();
-                const expiry = new Date(`${EXPIRY_DATE}T${EXPIRY_TIME}`);
+                const expiry = new Date(`${config.accessTime.date}T${config.accessTime.time}`);
 
                 if (now > expiry) {
-                    fullscreenBtn.disabled = true;
-                    fullscreenBtn.textContent = 'Akses Telah Berakhir';
-                    fullscreenBtn.classList.add('disabled-btn');
-                    fullscreenBtn.classList.remove('hover:bg-blue-700', 'transform', 'hover:scale-105', 'focus:ring-blue-500');
                     return true;
                 }
                 return false;
@@ -286,7 +293,7 @@
 
                 timerDisplay.style.display = 'block';
                 timerInterval = setInterval(() => {
-                    if (checkAccessExpiry()) {
+                    if (checkAccessExpiry(selectedConfig)) {
                         clearInterval(timerInterval);
                         showMessageModal('Akses telah berakhir. Halaman akan ditutup.');
                         exitSimulatedFullscreen();
@@ -398,24 +405,24 @@
                     return;
                 }
 
-                if (checkAccessExpiry()) {
+                if (selectedQuestionType === 'smp') {
+                    selectedConfig = SMP_CONFIG;
+                    zeroPadLength = 3;
+                } else if (selectedQuestionType === 'sma') {
+                    selectedConfig = SMA_CONFIG;
+                    zeroPadLength = 3;
+                } else if (selectedQuestionType === 'tpa') {
+                    selectedConfig = TPA_CONFIG;
+                    zeroPadLength = 0;
+                }
+
+                if (checkAccessExpiry(selectedConfig)) {
                     showMessageModal('Akses telah berakhir dan tidak bisa dilanjutkan.');
                     return;
                 }
 
-                if (selectedQuestionType === 'smp') {
-                    currentBaseUrl = SMP_CONFIG.baseUrl;
-                    totalPages = SMP_CONFIG.total_pages;
-                    zeroPadLength = 3;
-                } else if (selectedQuestionType === 'sma') {
-                    currentBaseUrl = SMA_CONFIG.baseUrl;
-                    totalPages = SMA_CONFIG.total_pages;
-                    zeroPadLength = 3;
-                } else if (selectedQuestionType === 'tpa') {
-                    currentBaseUrl = TPA_CONFIG.baseUrl;
-                    totalPages = TPA_CONFIG.total_pages;
-                    zeroPadLength = 0;
-                }
+                currentBaseUrl = selectedConfig.baseUrl;
+                totalPages = selectedConfig.total_pages;
 
                 if (totalPages === 0) {
                     showMessageModal('Tipe soal ini belum memiliki konten.');
@@ -427,7 +434,8 @@
                 
                 currentPage = 1;
                 updateImageDisplay();
-                timerSeconds = DURATION_IN_MINUTES * 60;
+                // Set timerSeconds dari durasi konfigurasi yang dipilih
+                timerSeconds = selectedConfig.duration * 60;
                 
                 mainContent.classList.add('opacity-0');
                 setTimeout(() => mainContent.classList.add('hidden'), 500);
@@ -495,7 +503,15 @@
             document.addEventListener('cut', event => event.preventDefault());
 
             // Panggil checkAccessExpiry() saat halaman dimuat untuk pertama kali
-            window.addEventListener('load', checkAccessExpiry);
+            window.addEventListener('load', () => {
+                // Nonaktifkan tombol jika ada jenis soal yang kedaluwarsa saat dimuat
+                if (checkAccessExpiry(SMP_CONFIG) || checkAccessExpiry(SMA_CONFIG) || checkAccessExpiry(TPA_CONFIG)) {
+                    fullscreenBtn.disabled = true;
+                    fullscreenBtn.textContent = 'Beberapa akses soal telah berakhir';
+                    fullscreenBtn.classList.add('disabled-btn');
+                    fullscreenBtn.classList.remove('hover:bg-blue-700', 'transform', 'hover:scale-105', 'focus:ring-blue-500');
+                }
+            });
             
             // Event listeners untuk deteksi perpindahan tab/jendela
             document.addEventListener('visibilitychange', () => {
