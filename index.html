@@ -27,6 +27,21 @@
 </head>
 <body class="bg-gray-100 p-4 sm:p-8">
     <div class="max-w-7xl mx-auto">
+        <!-- Navigation Bar -->
+        <nav class="bg-white rounded-xl shadow-lg p-4 mb-6 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+            <div class="flex items-center space-x-4">
+                <a href="#" class="flex items-center text-lg font-medium text-gray-800 hover:text-blue-600 transition-colors duration-200">
+                    🏠 Home
+                </a>
+                <a href="https://forms.gle/vPV2waaJfPzUwrwGA" target="_blank" class="flex items-center text-lg font-medium text-gray-800 hover:text-blue-600 transition-colors duration-200">
+                    Input Kompetisi
+                </a>
+            </div>
+            <button class="flex items-center text-lg font-medium text-gray-500 cursor-not-allowed" disabled>
+                Input Perizinan Lomba (SOON)
+            </button>
+        </nav>
+
         <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">SOS Competition Information</h1>
         <p class="text-gray-600 mb-6">Explore the latest competition details.</p>
 
@@ -89,7 +104,6 @@
         // Google Sheet API Configuration
         const SPREADSHEET_ID = '1h42ukgC8xPx79hR9WbNFppXUf-cWGyqqtMAMtw4vhBc';
         const API_KEY = 'AIzaSyAM7Gfodn3_HR0Qmv20auf_D-bu5ik8AL4';
-        // Updated sheet name to 'Competition' and range to 'M'
         const RANGE = 'Competition!A1:M100'; 
 
         // DOM Elements
