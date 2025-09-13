@@ -16,12 +16,12 @@
         /* Custom Tailwind colors for Kurasi */
         .text-kurasi-kuning { color: #facc15; } /* Yellow */
         .text-kurasi-hijau { color: #22c55e; } /* Green */
-        .text-kurasi-biru { color: #3b82f6; }  /* Blue */
+        .text-kurasi-oranye { color: #f97316; } /* Orange */
         .text-kurasi-merah { color: #ef4444; } /* Red */
 
         .bg-kurasi-kuning-light { background-color: #fef08a; } /* Light Yellow */
         .bg-kurasi-hijau-light { background-color: #dcfce7; } /* Light Green */
-        .bg-kurasi-biru-light { background-color: #dbeafe; }  /* Light Blue */
+        .bg-kurasi-oranye-light { background-color: #ffedd5; } /* Light Orange */
         .bg-kurasi-merah-light { background-color: #fee2e2; } /* Light Red */
     </style>
 </head>
@@ -44,6 +44,28 @@
 
         <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">SOS Competition Information</h1>
         <p class="text-gray-600 mb-6">Explore the latest competition details.</p>
+
+        <!-- Category Descriptions -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-3">Keterangan Kurasi</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                <div>
+                    <p><span class="font-bold text-kurasi-kuning">KUNING:</span> Dilaksanakan di Semarang, Sangat disarankan untuk diikuti.</p>
+                    <p class="pl-5 text-sm">Offline: Transport dan Makan 100% sekolah</p>
+                </div>
+                <div>
+                    <p><span class="font-bold text-kurasi-hijau">HIJAU:</span> Lomba Bergengsi, Sangat disarankan untuk diikuti.</p>
+                    <p class="pl-5 text-sm">Offline: Transport, Makan, Akomodasi (Penginapan), Pendamping 50% sekolah</p>
+                </div>
+                <div>
+                    <p><span class="font-bold text-kurasi-oranye">ORANYE:</span> Lomba Cukup bergengsi, disarankan untuk diikuti.</p>
+                    <p class="pl-5 text-sm">Offline: Perencanaan Transport, Makan, Akomodasi (Penginapan), Pendamping, 100% Siswa</p>
+                </div>
+                <div>
+                    <p><span class="font-bold text-kurasi-merah">MERAH:</span> Lomba yang sangat tidak disarankan untuk diikuti. yang Full Online(Misalkan: POS*, PUSKAN*S, DLL). Tapi boleh kalau mau mengikuti.</p>
+                </div>
+            </div>
+        </div>
 
         <!-- Control Bar -->
         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 space-y-4 sm:space-y-0">
@@ -191,8 +213,29 @@
         }
 
         /**
+         * Parses a date string in 'dd/mm/yyyy' format into a Date object.
+         * This is used for sorting and date comparisons.
+         * @param {string} dateString - The date string to parse.
+         * @returns {Date|null} The parsed Date object or null if invalid.
+         */
+        function parseIndonesianDate(dateString) {
+            if (!dateString) return null;
+            const parts = dateString.split('/');
+            if (parts.length === 3) {
+                const day = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                const year = parseInt(parts[2], 10);
+                const date = new Date(year, month, day);
+                // Check for valid date object
+                if (!isNaN(date.getTime())) {
+                    return date;
+                }
+            }
+            return null;
+        }
+
+        /**
          * Formats a date string into Indonesian locale (e.g., "29 Agustus 2025").
-         * Tries to parse 'dd/mm/yyyy' explicitly first, then other common date formats.
          * @param {string} dateString - The date string to format.
          * @returns {string} The formatted date string or 'N/A' if invalid.
          */
@@ -201,12 +244,10 @@
             const options = { day: 'numeric', month: 'long', year: 'numeric' };
             try {
                 let date;
-
-                // Attempt to parse dd/mm/yyyy format first
                 const parts = dateString.split('/');
                 if (parts.length === 3) {
                     const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                    const month = parseInt(parts[1], 10) - 1; 
                     const year = parseInt(parts[2], 10);
                     date = new Date(year, month, day);
 
@@ -215,17 +256,16 @@
                     }
                 }
                 
-                // Fallback to standard date parsing if dd/mm/yyyy failed or wasn't the format
                 date = new Date(dateString);
                 
                 if (!isNaN(date.getTime())) {
                     return date.toLocaleDateString('id-ID', options);
                 } else {
-                    return dateString; // Return original string if unable to parse
+                    return dateString;
                 }
             } catch (e) {
                 console.error("Error formatting date:", dateString, e);
-                return dateString; // Fallback to original string on error
+                return dateString;
             }
         }
 
@@ -236,12 +276,12 @@
          */
         function formatToRupiah(amount) {
             if (!amount) return 'N/A';
-            const num = parseFloat(amount.toString().replace(/[^0-9,-]/g, '').replace(',', '.')); // Handle comma as decimal separator
-            if (isNaN(num)) return amount; // Return original if not a valid number
+            const num = parseFloat(amount.toString().replace(/[^0-9,-]/g, '').replace(',', '.'));
+            if (isNaN(num)) return amount;
             return new Intl.NumberFormat('id-ID', {
                 style: 'currency',
                 currency: 'IDR',
-                minimumFractionDigits: 0, // No decimal for whole rupiah
+                minimumFractionDigits: 0,
                 maximumFractionDigits: 0,
             }).format(num);
         }
@@ -258,8 +298,8 @@
                     return { textClass: 'text-kurasi-kuning', bgClass: 'bg-kurasi-kuning-light' };
                 case 'hijau':
                     return { textClass: 'text-kurasi-hijau', bgClass: 'bg-kurasi-hijau-light' };
-                case 'biru':
-                    return { textClass: 'text-kurasi-biru', bgClass: 'bg-kurasi-biru-light' };
+                case 'oranye':
+                    return { textClass: 'text-kurasi-oranye', bgClass: 'bg-kurasi-oranye-light' };
                 case 'merah':
                     return { textClass: 'text-kurasi-merah', bgClass: 'bg-kurasi-merah-light' };
                 default:
@@ -273,7 +313,7 @@
          * @param {Array<Object>} data - An array of competition data objects.
          */
         function renderCards(data) {
-            cardContainer.innerHTML = ''; // Clear existing cards
+            cardContainer.innerHTML = '';
             if (data.length === 0) {
                 cardContainer.innerHTML = '<p class="text-center text-gray-500 col-span-full mt-8">No data available for the current filter.</p>';
                 return;
@@ -281,8 +321,20 @@
 
             data.forEach(item => {
                 const kurasiClasses = getKurasiColorClass(item.Kurasi);
+                const deadlineDate = parseIndonesianDate(item['Deadline Pendaftaran']);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                let deadlineTagClasses = 'bg-blue-100 text-blue-800';
+                if (deadlineDate && deadlineDate < today) {
+                    deadlineTagClasses = 'bg-red-100 text-red-800';
+                }
+
+                // Determine the text for the description based on whether a description exists
+                const descriptionText = item.Deskripsi || item['Status Lomba'] || 'No description available.';
+
                 const card = document.createElement('div');
-                card.className = 'bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden cursor-pointer group'; // Added 'group' for image hover effect
+                card.className = 'bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden cursor-pointer group';
                 card.innerHTML = `
                     <div class="h-48 bg-gray-200 overflow-hidden relative">
                         <img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
@@ -293,11 +345,11 @@
                     </div>
                     <div class="p-4">
                         <h3 class="text-lg font-bold text-gray-800 mb-2 truncate">${item['Nama Kompetisi'] || 'No Title'}</h3>
-                        <p class="text-sm text-gray-500 line-clamp-2">${item.Deskripsi || 'No description available.'}</p>
+                        <p class="text-sm text-gray-500 line-clamp-2">${descriptionText}</p>
                         <div class="flex flex-wrap mt-3 gap-2">
                             ${item['Bidang Lomba'] ? `<span class="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">${item['Bidang Lomba']}</span>` : ''}
                             ${item.Kurasi ? `<span class="${kurasiClasses.bgClass} ${kurasiClasses.textClass} text-xs font-medium px-2.5 py-0.5 rounded-full">${item.Kurasi}</span>` : ''}
-                            ${item['Deadline Pendaftaran'] ? `<span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Daftar: ${formatDateToIndonesian(item['Deadline Pendaftaran'])}</span>` : ''}
+                            ${item['Deadline Pendaftaran'] ? `<span class="${deadlineTagClasses} text-xs font-medium px-2.5 py-0.5 rounded-full">Daftar: ${formatDateToIndonesian(item['Deadline Pendaftaran'])}</span>` : ''}
                             ${item['Tanggal Pelaksanaan'] ? `<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">Pelaksanaan: ${formatDateToIndonesian(item['Tanggal Pelaksanaan'])}</span>` : ''}
                         </div>
                     </div>
@@ -311,9 +363,8 @@
          * Populates the filter dropdown with unique 'Bidang Lomba' values from the fetched data.
          */
         function populateFilterDropdown() {
-            // Get unique 'Bidang Lomba' values, filter out empty ones, and sort them
             const bidangLombaValues = [...new Set(allData.map(item => item['Bidang Lomba']).filter(Boolean))].sort();
-            filterDropdown.innerHTML = '<option value="">All</option>'; // Always start with 'All' option
+            filterDropdown.innerHTML = '<option value="">All</option>';
             bidangLombaValues.forEach(value => {
                 const option = document.createElement('option');
                 option.value = value;
@@ -328,8 +379,8 @@
         function filterCards() {
             const selectedBidangLomba = filterDropdown.value;
             const filteredData = selectedBidangLomba === ''
-                ? allData // If "All" is selected, show all data
-                : allData.filter(item => item['Bidang Lomba'] === selectedBidangLomba); // Filter by selected 'Bidang Lomba'
+                ? allData
+                : allData.filter(item => item['Bidang Lomba'] === selectedBidangLomba);
             renderCards(filteredData);
         }
 
@@ -340,10 +391,7 @@
         function openModal(item) {
             document.getElementById('modalTitle').textContent = item['Nama Kompetisi'] || 'No Title';
 
-            // Manually construct details HTML for specific fields and general ones
             let detailsHtml = ``;
-
-            // Apply Kurasi color class
             const kurasiClasses = getKurasiColorClass(item.Kurasi);
 
             if (item['Bidang Lomba']) detailsHtml += `<p><strong>Bidang Lomba:</strong> ${item['Bidang Lomba']}</p>`;
@@ -354,15 +402,13 @@
             if (item.Biaya) detailsHtml += `<p><strong>Biaya:</strong> ${formatToRupiah(item.Biaya)}</p>`;
             if (item.Deskripsi) detailsHtml += `<p><strong>Deskripsi:</strong> ${item.Deskripsi}</p>`;
 
-            // Ordered specific fields that appear above Info Broadcast
             if (item['Jenis Lomba']) detailsHtml += `<p><strong>Jenis Lomba:</strong> ${item['Jenis Lomba']}</p>`;
             if (item['Status Lomba']) detailsHtml += `<p><strong>Status Lomba:</strong> ${item['Status Lomba']}</p>`;
             if (item['Lokasi Lomba']) detailsHtml += `<p><strong>Lokasi Lomba:</strong> ${item['Lokasi Lomba']}</p>`;
             
-            // Add clickable link for Link Daftar/Guidebook before Info Broadcast
             if (item['Link Daftar/Guidebook']) {
                 const linkText = item['Link Daftar/Guidebook'];
-                const urlRegex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i; // Basic URL validation
+                const urlRegex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
                 if (urlRegex.test(linkText)) {
                     detailsHtml += `<p><strong>Link Daftar/Guidebook:</strong> <a href="${linkText}" target="_blank" class="text-blue-600 hover:underline">${linkText}</a></p>`;
                 } else {
@@ -371,7 +417,6 @@
             }
 
 
-            // Add any other relevant fields dynamically, excluding those already handled or the image/timestamp column
             const excludedKeys = [
                 'Nama Kompetisi', 'Deskripsi', 'Bidang Lomba', 
                 'Deadline Pendaftaran', 'Tanggal Pelaksanaan', 'Tanggal Pelaksanaan (Penyisihan)', 
@@ -384,7 +429,6 @@
                 }
             });
 
-            // "Info Broadcast" is the very last section
             if (item['Info Broadcast']) {
                 const formattedInfoBroadcast = item['Info Broadcast'].replace(/\n/g, '<br>');
                 detailsHtml += `<p><strong>Info Broadcast:</strong><br>${formattedInfoBroadcast}</p>`;
@@ -392,13 +436,11 @@
 
             document.getElementById('modalDetails').innerHTML = detailsHtml;
 
-            // Set modal image source and error fallback
             const modalImage = document.getElementById('modalImage');
-            const originalImageUrl = item.Poster; // Use item.Poster for the modal image
+            const originalImageUrl = item.Poster;
             modalImage.src = getDirectImageUrl(originalImageUrl);
             modalImage.onerror = () => modalImage.src = PLACEHOLDER_IMAGE;
 
-            // Make modal image clickable to open original Google Drive URL
             document.getElementById('modalImageContainer').onclick = () => {
                 if (originalImageUrl && !originalImageUrl.includes(PLACEHOLDER_IMAGE)) {
                     window.open(originalImageUrl, '_blank');
@@ -406,8 +448,8 @@
             };
 
             modal.classList.remove('hidden');
-            modal.classList.add('flex'); // Use flex to center the modal content
-            document.body.style.overflow = 'hidden'; // Prevent scrolling the background
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
         }
 
         /**
@@ -416,7 +458,7 @@
         function closeModal() {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-            document.body.style.overflow = ''; // Re-enable background scrolling
+            document.body.style.overflow = '';
         }
 
         /**
@@ -425,21 +467,31 @@
          * @param {number} delay - Current delay before retry.
          */
         async function fetchDataWithBackoff(retries = 0, delay = 1000) {
-            const MAX_RETRIES = 3; // Maximum number of retries
+            const MAX_RETRIES = 3;
             const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}?key=${API_KEY}`;
 
             try {
                 const response = await fetch(url);
                 if (!response.ok) {
                     if (response.status === 400 && retries < MAX_RETRIES) {
-                        // For a 400 error, retry a few times as it might be a temporary network hiccup or service issue.
                         await new Promise(res => setTimeout(res, delay));
-                        return fetchDataWithBackoff(retries + 1, delay * 2); // Double delay for exponential backoff
+                        return fetchDataWithBackoff(retries + 1, delay * 2);
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
                 allData = processData(data.values);
+                
+                // Sort data by 'Deadline Pendaftaran' in descending order (latest first)
+                allData.sort((a, b) => {
+                    const dateA = parseIndonesianDate(a['Deadline Pendaftaran']);
+                    const dateB = parseIndonesianDate(b['Deadline Pendaftaran']);
+                    // Treat invalid dates as very old so they appear at the end
+                    const timeA = dateA ? dateA.getTime() : -Infinity;
+                    const timeB = dateB ? dateB.getTime() : -Infinity;
+                    return timeB - timeA;
+                });
+                
                 renderCards(allData);
                 populateFilterDropdown();
             } catch (error) {
@@ -452,7 +504,7 @@
                 }
                 showError(specificErrorMessage);
             } finally {
-                hideLoading(); // Hide loading indicator regardless of success or failure
+                hideLoading();
             }
         }
 
@@ -460,7 +512,7 @@
          * Main function to fetch and render data (initiates with backoff).
          */
         async function fetchData() {
-            showLoading(); // Show loading indicator
+            showLoading();
             await fetchDataWithBackoff();
         }
 
@@ -472,7 +524,7 @@
 
         // Close modal when clicking outside the modal content
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) { // Check if the click was directly on the modal background
+            if (e.target === modal) {
                 closeModal();
             }
         });
