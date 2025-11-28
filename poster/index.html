@@ -22,7 +22,7 @@
 </head>
   <body class="bg-slate-50 text-slate-900 antialiased">
     <div id="root"></div>
-    <!-- Vite akan memproses file ini dan menyuntikkan CSS secara otomatis -->
-    <script type="module" src="/index.tsx"></script>
+    <!-- Script diarahkan ke ./index.tsx (relatif) agar aman di berbagai lingkungan hosting -->
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
