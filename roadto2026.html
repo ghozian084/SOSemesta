@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Timer All-in-One OSN 2026</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700;900&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #0f172a; /* Warna latar gelap elegan */
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 30px 15px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        header h1 {
+            color: #fbbf24;
+            font-size: 2.2em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1em;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .level-column {
+            flex: 1;
+            background: #1e293b;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 1px solid #334155;
+        }
+
+        .level-title {
+            text-align: center;
+            font-size: 1.8em;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px dashed #475569;
+        }
+
+        .title-smp { color: #38bdf8; }
+        .title-sma { color: #a78bfa; }
+
+        .card {
+            background: #0f172a;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #fbbf24;
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stage-name {
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #f1f5f9;
+        }
+
+        .stage-date {
+            background: #334155;
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        .timer-grid {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        .time-box {
+            background: #1e293b;
+            flex: 1;
+            text-align: center;
+            padding: 10px 5px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+        }
+
+        .time-box span {
+            display: block;
+            font-size: 1.5em;
+            font-weight: 900;
+            color: #fbbf24;
+        }
+
+        .time-box label {
+            font-size: 0.7em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            letter-spacing: 1px;
+        }
+
+        .status-active {
+            display: none;
+            text-align: center;
+            background: #059669;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* Responsive Design untuk Layar HP */
+        @media (max-width: 800px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .time-box span {
+                font-size: 1.2em;
+            }
+            .time-box label {
+                font-size: 0.6em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Web Timer OSN 2026</h1>
+        <p>Hitung Mundur Pelaksanaan Olimpiade Sains Nasional 2026</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Kolom SMP -->
+        <div class="level-column">
+            <h2 class="level-title title-smp">TINGKAT SMP</h2>
+            <div id="container-smp"></div>
+        </div>
+
+        <!-- Kolom SMA -->
+        <div class="level-column">
+            <h2 class="level-title title-sma">TINGKAT SMA</h2>
+            <div id="container-sma"></div>
+        </div>
+    </div>
+
+    <script>
+        // Database Jadwal (Format Waktu: Tahun-Bulan-Tanggal T Jam:Menit:Detik +Zona Waktu)
+        // Set ke jam 08:00 WIB (Waktu Indonesia Barat)
+        const schedules = [
+            // Jadwal SMP
+            { id: 'smp-osnk', level: 'smp', stage: 'Pelaksanaan OSN-K', dateText: '8 - 11 Juni 2026', target: '2026-06-08T08:00:00+07:00' },
+            { id: 'smp-osnp', level: 'smp', stage: 'Pelaksanaan OSN-P', dateText: '6 - 9 Juli 2026', target: '2026-07-06T08:00:00+07:00' },
+            { id: 'smp-semi', level: 'smp', stage: 'Pelaksanaan Semifinal', dateText: '13 Agustus 2026', target: '2026-08-13T08:00:00+07:00' },
+            { id: 'smp-nas', level: 'smp', stage: 'OSN Nasional (Final)', dateText: '25 - 31 Agustus 2026', target: '2026-08-25T08:00:00+07:00' },
+            
+            // Jadwal SMA
+            { id: 'sma-osnk', level: 'sma', stage: 'Pelaksanaan OSN-K', dateText: '18 - 19 Juni 2026', target: '2026-06-18T08:00:00+07:00' },
+            { id: 'sma-osnp', level: 'sma', stage: 'Pelaksanaan OSN-P', dateText: '27 - 29 Juli 2026', target: '2026-07-27T08:00:00+07:00' },
+            { id: 'sma-semi', level: 'sma', stage: 'Pelaksanaan Semifinal', dateText: '18 Agustus 2026', target: '2026-08-18T08:00:00+07:00' },
+            { id: 'sma-nas', level: 'sma', stage: 'OSN Nasional (Final)', dateText: '14 - 20 September 2026', target: '2026-09-14T08:00:00+07:00' }
+        ];
+
+        // Fungsi untuk membuat elemen HTML (Card Timer) secara otomatis
+        function renderCards() {
+            const containerSmp = document.getElementById('container-smp');
+            const containerSma = document.getElementById('container-sma');
+
+            schedules.forEach(item => {
+                const cardHTML = `
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="stage-name">${item.stage}</div>
+                            <div class="stage-date">${item.dateText}</div>
+                        </div>
+                        <div class="timer-grid" id="timer-${item.id}">
+                            <div class="time-box"><span id="d-${item.id}">00</span><label>Hari</label></div>
+                            <div class="time-box"><span id="h-${item.id}">00</span><label>Jam</label></div>
+                            <div class="time-box"><span id="m-${item.id}">00</span><label>Menit</label></div>
+                            <div class="time-box"><span id="s-${item.id}">00</span><label>Detik</label></div>
+                        </div>
+                        <div class="status-active" id="status-${item.id}">
+                            WAKTU PELAKSANAAN TELAH TIBA!
+                        </div>
+                    </div>
+                `;
+
+                if (item.level === 'smp') {
+                    containerSmp.innerHTML += cardHTML;
+                } else {
+                    containerSma.innerHTML += cardHTML;
+                }
+            });
+        }
+
+        // Fungsi untuk menjalankan Timer secara Real-time
+        function startAllTimers() {
+            setInterval(() => {
+                const now = new Date().getTime();
+
+                schedules.forEach(item => {
+                    const targetDate = new Date(item.target).getTime();
+                    const distance = targetDate - now;
+
+                    const timerDisplay = document.getElementById(`timer-${item.id}`);
+                    const statusMessage = document.getElementById(`status-${item.id}`);
+
+                    if (distance < 0) {
+                        // Waktu Habis / Sedang Berlangsung
+                        if(timerDisplay) timerDisplay.style.display = 'none';
+                        if(statusMessage) statusMessage.style.display = 'block';
+                    } else {
+                        // Hitung Mundur
+                        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                        // Format angka: tambah '0' di depan jika < 10
+                        document.getElementById(`d-${item.id}`).innerText = days < 10 ? '0' + days : days;
+                        document.getElementById(`h-${item.id}`).innerText = hours < 10 ? '0' + hours : hours;
+                        document.getElementById(`m-${item.id}`).innerText = minutes < 10 ? '0' + minutes : minutes;
+                        document.getElementById(`s-${item.id}`).innerText = seconds < 10 ? '0' + seconds : seconds;
+                    }
+                });
+            }, 1000);
+        }
+
+        // Menjalankan Skrip
+        renderCards();
+        startAllTimers();
+
+    </script>
+</body>
+</html>
