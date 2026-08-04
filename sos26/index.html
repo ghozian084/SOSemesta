@@ -97,6 +97,17 @@
     max-width:460px;margin:0 auto;
   }
   .lede strong{color:var(--text);font-weight:600;}
+  .sk-link{
+    display:inline-block;margin-top:20px;
+    font-family:'IBM Plex Mono', monospace;font-size:12px;letter-spacing:.03em;
+    color:var(--blue);
+    border:1px solid var(--blue-line);
+    background:var(--blue-soft);
+    padding:9px 18px;border-radius:20px;
+    text-decoration:none;
+    transition:background .12s ease, border-color .12s ease;
+  }
+  .sk-link:hover{background:rgba(61,107,196,.24);border-color:var(--blue);}
 
   /* ---------- card shell ---------- */
   .card{
@@ -322,6 +333,7 @@
     <p class="subtitle">Tahun Ajaran 2026 / 2027</p>
     <div class="divider"></div>
     <p class="lede">Masukkan <strong>NISN</strong> dan <strong>tanggal lahir</strong> sesuai data sekolah untuk melihat hasil Seleksi Tahap 1.</p>
+    <a class="sk-link" href="https://so-semesta.vercel.app/sos26/phase1.html" target="_blank" rel="noopener noreferrer">Lihat Pengumuman Umum &amp; Surat Keputusan →</a>
   </div>
 
   <div class="card">
@@ -606,6 +618,17 @@ form.addEventListener('submit', function(e){
   verdictBox.innerHTML = verdictHTML;
   resultCard.classList.add('show');
   resultCard.scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+// ---------- proteksi dasar: nonaktifkan klik kanan & shortcut inspect element ----------
+document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+document.addEventListener('keydown', function(e){
+  const k = e.key ? e.key.toLowerCase() : '';
+  const blockCombo =
+    e.key === 'F12' ||
+    ((e.ctrlKey || e.metaKey) && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) ||
+    ((e.ctrlKey || e.metaKey) && k === 'u');
+  if(blockCombo) e.preventDefault();
 });
 </script>
 </body>
