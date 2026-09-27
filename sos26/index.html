@@ -605,7 +605,7 @@ form.addEventListener('submit', function(e){
       <p class="verdict-title accept">Selamat, ${firstName}!</p>
       <p class="verdict-text">Anda dinyatakan <strong>lolos</strong> pada Seleksi Tahap 2 Tim Olimpiade Semesta 2026/2027.</p>
       <span class="field-tag">Bidang · ${match.bidang}</span>
-      <a class="sk-link" href="phase2.html" style="margin-top:16px;">Lihat daftar lengkap peserta yang lolos &rarr;</a>
+      <a class="sk-link" href="sos26/phase2.html" style="margin-top:16px;">Lihat daftar lengkap peserta yang lolos &rarr;</a>
       ${meetingBoxHTML()}
       ${cpBoxHTML(match.kelas, match.jk)}`;
   } else if(match.status === 'Lolos - Pindah Bidang'){
@@ -618,7 +618,7 @@ form.addEventListener('submit', function(e){
       <p class="verdict-text">Anda dinyatakan <strong>lolos</strong> pada Seleksi Tahap 2 Tim Olimpiade Semesta 2026/2027, dengan <strong>perubahan bidang lomba</strong>.</p>
       <span class="field-tag">Bidang · ${match.bidang}</span>
       ${prevNote}
-      <a class="sk-link" href="phase2.html" style="margin-top:16px;">Lihat daftar lengkap peserta yang lolos &rarr;</a>
+      <a class="sk-link" href="sos26/phase2.html" style="margin-top:16px;">Lihat daftar lengkap peserta yang lolos &rarr;</a>
       ${meetingBoxHTML()}
       ${cpBoxHTML(match.kelas, match.jk)}`;
   } else if(match.status === 'Mengundurkan diri'){
